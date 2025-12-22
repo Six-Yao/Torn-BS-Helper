@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import ttk
 
 class CollapsiblePane(ttk.Frame):
-    def __init__(self, parent, expanded_text, collapsed_text):
+    def __init__(self, parent, expanded_text, collapsed_text, is_expanded = False):
         ttk.Frame.__init__(self, parent)
         
         self.parent = parent
@@ -11,15 +11,19 @@ class CollapsiblePane(ttk.Frame):
         
         self.columnconfigure(0, weight=1)
         
-        self.toggle_button = ttk.Button(self, text=self.collapsed_text, command=self.toggle, takefocus=0)
+        if is_expanded:
+            self.toggle_button = ttk.Button(self, text=self.expanded_text, command=self.toggle, takefocus=0)
+        else:
+            self.toggle_button = ttk.Button(self, text=self.collapsed_text, command=self.toggle, takefocus=0)
         self.toggle_button.grid(row=0, column=0, sticky="ew")
         
         self.content = ttk.Frame(self)
         self.content.grid(row=1, column=0, sticky="nsew")
         self.content.columnconfigure(0, weight=1)
         
-        self.is_expanded = False
-        self.content.grid_forget()
+        self.is_expanded = is_expanded
+        if not self.is_expanded:
+            self.content.grid_forget()
         
     def toggle(self):
         if self.is_expanded:

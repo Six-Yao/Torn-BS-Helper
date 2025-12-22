@@ -2,6 +2,7 @@ from tkinter import *
 from tkinter import ttk, messagebox
 import crawler
 import calculator
+import format_utils
 from models import CollapsiblePane
 
 class Torn_BS_Helper():
@@ -11,7 +12,8 @@ class Torn_BS_Helper():
         self.root.config(background="white")
         self.root.geometry("600x800")
 
-        self.digit_validation = self.root.register(lambda P: P.isdigit())
+        self.digit_validation = self.root.register(format_utils.validate_digit_input)
+        self.numeric_entry_formatters = []
         ttk.Style().configure("TRadiobutton", background="white")
         ttk.Style().configure("TCheckbutton", background="white")
         ttk.Style().configure("TSpinbox", disabledbackground="white")
@@ -64,6 +66,7 @@ class Torn_BS_Helper():
         self.pts_value = 0
         self.energy_perks = 0
 
+        self.set_tutorial()
         self.set_api()
         self.set_stats()
         self.set_BS()
@@ -107,8 +110,19 @@ class Torn_BS_Helper():
     def _bs_box_generator(self, father, name, stats, col, row):
         inner_BS_box = Frame(father, background="white", padx=10, pady=5)
         Label(inner_BS_box, text=name, background="white",width=10).grid(column=col, row=row)
-        Entry(inner_BS_box, validate="key", validatecommand=(self.digit_validation, "%P",), highlightbackground="grey", highlightthickness=1,
-              invalidcommand=self.wrong, width=15, textvariable=stats, relief="flat", highlightcolor="grey").grid(column=col, row=row+1)
+        stats_entry = Entry(
+            inner_BS_box,
+            validate="key",
+            validatecommand=(self.digit_validation, "%P", "%S", "%d"),
+            highlightbackground="grey",
+            highlightthickness=1,
+            invalidcommand=self.wrong,
+            width=15,
+            relief="flat",
+            highlightcolor="grey",
+        )
+        stats_entry.grid(column=col, row=row+1)
+        self._register_numeric_entry(stats_entry, stats)
         inner_BS_box.grid(column=col, row=row//2)
 
     def _energy_box_generator(self, father, energy, num):
@@ -117,15 +131,23 @@ class Torn_BS_Helper():
         else:
             effective_energy = round(energy * (1+int(self.energy_perks) / 100))
         bs_gain = int(effective_energy * num * 40000)
-        e_div = CollapsiblePane(father, expanded_text=f"{energy}E: 每年额外增长{bs_gain} [折叠]", collapsed_text=f"{energy}E: 每年额外增长{bs_gain} [展开]")
+        gain_text = format_utils.format_number(bs_gain)
+        e_div = CollapsiblePane(father, expanded_text=f"{energy}E: 每年额外增长{gain_text} [折叠]", collapsed_text=f"{energy}E: 每年额外增长{gain_text} [展开]")
         e_div.pack(padx=10, pady=5,fill="both")
-        Label(e_div.content, text=f"使用{num}个{energy}E物品（等效{effective_energy}E）").pack()
-        Label(e_div.content, text=f"多用{int(effective_energy*num)}E").pack()
+        Label(e_div.content, text=f"使用{format_utils.format_number(num)}个{energy}E物品（等效{format_utils.format_number(effective_energy)}E)").pack()
+        Label(e_div.content, text=f"多用{format_utils.format_number(int(effective_energy*num))}E").pack()
 
     def _SE_box_generator(self, father, num, stats, name, stats_name, col, row):
         bs_gain = int(stats * pow(1.01, num))
-        text = f"每年使用{num}个{name}\n{stats_name}增长{bs_gain}"
-        Label(father, text=text, borderwidth=5, background="white", highlightcolor="grey", highlightthickness=2, highlightbackground="grey").grid(row=row, column=col, padx=10, pady=5)
+        text = (
+            f"每年使用{format_utils.format_number(num)}个{name}\n"
+            f"{stats_name}增长{format_utils.format_number(bs_gain)}"
+        )
+        Label(father, text=text, borderwidth=5, background="white", highlightcolor="grey", highlightthickness=2, highlightbackground="grey", width=25).grid(row=row, column=col, padx=10, pady=5)
+
+    def _register_numeric_entry(self, entry_widget, variable):
+        formatter = format_utils.NumericEntryFormatter(entry_widget, variable)
+        self.numeric_entry_formatters.append(formatter)
 
     def wrong(self):
         messagebox.showwarning("错误","请输入数字")
@@ -162,8 +184,19 @@ class Torn_BS_Helper():
 
         bank_num_div = Frame(bank_inner_div, background="white")
         Label(bank_num_div, text="储蓄额：", background="white").pack(anchor="w")
-        Entry(bank_num_div, validate="key", validatecommand=(self.digit_validation, "%P",),relief="flat", highlightcolor="grey",
-              invalidcommand=self.wrong, width=20, textvariable=self.bank_num, highlightthickness=1, highlightbackground="grey").pack()
+        bank_amount_entry = Entry(
+            bank_num_div,
+            validate="key",
+            validatecommand=(self.digit_validation, "%P", "%S", "%d"),
+            relief="flat",
+            highlightcolor="grey",
+            invalidcommand=self.wrong,
+            width=20,
+            highlightthickness=1,
+            highlightbackground="grey",
+        )
+        bank_amount_entry.pack()
+        self._register_numeric_entry(bank_amount_entry, self.bank_num)
 
         bank_time_div = Frame(bank_inner_div, background="white")
         periods = [
@@ -213,9 +246,18 @@ class Torn_BS_Helper():
         job_inner_div = Frame(job_div, background="white")
         Label(job_inner_div, text="工作日收入: ",background="white").grid(column=0,row=0)
         
-        job_income = Entry(job_inner_div, validate="key", validatecommand=(self.digit_validation, "%P",), highlightcolor="grey",relief="flat",
-                           invalidcommand=self.wrong, textvariable=self.salary, highlightbackground="grey", highlightthickness=1)
+        job_income = Entry(
+            job_inner_div,
+            validate="key",
+            validatecommand=(self.digit_validation, "%P", "%S", "%d"),
+            highlightcolor="grey",
+            relief="flat",
+            invalidcommand=self.wrong,
+            highlightbackground="grey",
+            highlightthickness=1,
+        )
         job_income.grid(column=1,row=0)
+        self._register_numeric_entry(job_income, self.salary)
 
         job_inner_div.pack(pady=5)
         job_div.pack(fill="x", padx=5, pady=5)
@@ -226,9 +268,18 @@ class Torn_BS_Helper():
         Label(other_inner_div, text="其余月收入: ",background="white").grid(column=0,row=0)
 
 
-        other_income = Entry(other_inner_div, validate="key", validatecommand=(self.digit_validation, "%P",), highlightcolor="grey", relief="flat",
-                             invalidcommand=self.wrong, textvariable=self.others, highlightbackground="grey", highlightthickness=1)
+        other_income = Entry(
+            other_inner_div,
+            validate="key",
+            validatecommand=(self.digit_validation, "%P", "%S", "%d"),
+            highlightcolor="grey",
+            relief="flat",
+            invalidcommand=self.wrong,
+            highlightbackground="grey",
+            highlightthickness=1,
+        )
         other_income.grid(column=1,row=0)
+        self._register_numeric_entry(other_income, self.others)
 
         other_inner_div.pack(pady=5)
         other_div.pack(fill="x", padx=5, pady=5)
@@ -276,26 +327,31 @@ class Torn_BS_Helper():
                 stock_income += calculator.calculate_stocks(divid*num, 7)
         other_income = calculator.calculate_others(self.others.get())
         self.income_yearly = int(bank_income + stock_income*365 + other_income*365 + self.salary.get()*365)
-        profit_div = CollapsiblePane(self.result_div, expanded_text=f"年收入: {self.income_yearly} [折叠]", collapsed_text=f"年收入: {self.income_yearly} [展开]")
+        total_income_text = format_utils.format_number(self.income_yearly)
+        profit_div = CollapsiblePane(
+            self.result_div,
+            expanded_text=f"年收入: {total_income_text} [折叠]",
+            collapsed_text=f"年收入: {total_income_text} [展开]",
+        )
         profit_div.pack(fill="both", padx=10, pady=5)
         bank_div = Frame(profit_div.content, background="white")
         Label(bank_div, text="银行年收入: ").grid(column=0, row=0)
-        Label(bank_div, text=f"{int(bank_income)}").grid(column=1, row=0)
+        Label(bank_div, text=format_utils.format_number(int(bank_income))).grid(column=1, row=0)
         bank_div.pack()
 
         stocks_div = Frame(profit_div.content, background="white")
         Label(stocks_div, text="股票年收入: ").grid(column=0, row=0)
-        Label(stocks_div, text=f"{int(stock_income*365)}").grid(column=1, row=0)
+        Label(stocks_div, text=format_utils.format_number(int(stock_income*365))).grid(column=1, row=0)
         stocks_div.pack()
 
         salary_div = Frame(profit_div.content, background="white")
         Label(salary_div, text="工作年收入: ").grid(column=0, row=0)
-        Label(salary_div, text=f"{int(self.salary.get()*365)}").grid(column=1, row=0)
+        Label(salary_div, text=format_utils.format_number(int(self.salary.get()*365))).grid(column=1, row=0)
         salary_div.pack()
         
         other_div = Frame(profit_div.content, background="white")
         Label(other_div, text="其他年收入: ").grid(column=0, row=0)
-        Label(other_div, text=f"{int(other_income)*365}").grid(column=1, row=0)
+        Label(other_div, text=format_utils.format_number(int(other_income)*365)).grid(column=1, row=0)
         other_div.pack()
 
     def set_energy_result(self):
@@ -338,6 +394,11 @@ class Torn_BS_Helper():
         SE_inner_div.pack()
         SE_div.pack(fill="both", padx=10, pady=5)
         
+    def set_tutorial(self):
+        tutorial = CollapsiblePane(self.inner_frame, expanded_text="收起", collapsed_text="使用指南", is_expanded=True)
+        tutorial.pack(fill="both", padx=10, pady=5)
+        Label(tutorial.content, text="从settings->API keys中复制一个级别至少为Limited Access的key到最上方文本框中\n点击运行，等待数据爬取结束\n随后按需修改/添加数值，点击最下方计算开始计算").pack()
+
 if __name__ == "__main__":
     app = Torn_BS_Helper()
     app.root.mainloop()

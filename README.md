@@ -23,7 +23,7 @@ pip install requests
 ```shell
 python main.py
 ```
-2. 在游戏内->settings->API settings中创建/复制一个至少为Limited Access的key到最上方文本框
+2. 在游戏内->settings->API keys中创建/复制一个至少为Limited Access的key到最上方文本框
 3. 点击运行，等待爬取数据并填充
 4. 检查并补充所有信息
 5. 点击开始计算得到结果
@@ -34,5 +34,5 @@ python main.py
   - [x] 爬到了哪些数据？填在哪里？
   - [x] 数值是否完全？
 - [x] 展示
-- [ ] 美化(主要是数字位数切分)
+- [x] 美化(数字位数切分与使用指引)
 ## 大概没有人会看这个项目，贡献啥的就不写了
